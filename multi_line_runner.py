@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import argparse
 import json
 import inspect
 from compliance_checker.runner import CheckSuite
@@ -23,36 +24,42 @@ class MultiFileRunner(object):
         return [x[0] for x in meths if x[0].startswith("check_")]
 
     def add_file(self, filepath):
-        assert os.path.isfile(os.path.join(self.basepath, filepath)), "File {} doesn't exist at {}".format(filepath, self.basepath)
-        self.data_set.append(os.path.join(self.basepath, filepath))
+        assert os.path.isfile(filepath), "File {} does not exist".format(filepath)
+        self.data_set.append(os.path.join(filepath))
 
         return self
 
     def run_tests(self, skip_checks, checker_names):
-        output = []
+        output = {}
         for data_file in self.data_set:
+            # print "Testing {}".format(data_file)
             ds = self.check_suite.load_dataset(data_file)
-            output.append(self.check_suite.run(ds, skip_checks, checker_names))
+            output[data_file] = self.check_suite.run(ds, skip_checks, checker_names)
         return output
 
     def json_output(self, output):
-        results_array = []
-        for score_groups in output:
+        results_dict = {}
+        for filenames in output:
+            score_groups = output[filenames]
             results = {}
             for i, (checker, rpair) in enumerate(score_groups.items()):
                 groups, errors = rpair
                 results[checker] = mfr.check_suite.dict_output('cf', groups, 'test', 1)
-            results_array.append(results)
-        return json.dumps(results_array, indent=2, ensure_ascii=False)
-
-basepath = 'data/'
-#filepath = 'va_Amon_HadGEM2-ES_rcp45_r1i1p1f1_202101-202101.nc'
-filepath = 'ta_Amon_HadGEM2-A_amip_r1i1p1f1_202109-202109.nc'
-filepath = 'tasmin_day_HadGEM2-ES_rcp45_r1i1p1f1_20210101-20210130.nc'
+            results_dict[filenames] = results
+        return json.dumps(results_dict, indent=2, ensure_ascii=False)
 
 if __name__ == "__main__":
-    mfr = MultiFileRunner(CheckSuite(), 'data')
-    # print mfr.get_checks('cf')
-    mfr.add_file(filepath)
+    parser = argparse.ArgumentParser(description='Validate a set of ncdf files')
+    parser.add_argument('--basedir')
+    args = parser.parse_args()
+
+    mfr = MultiFileRunner(CheckSuite(), args.basedir)
+    for root, dirs, files in os.walk(args.basedir):
+        for file in files:
+            if file.endswith(".nc"):
+                # print "Adding {} to the queue".format(file)
+                mfr.add_file(os.path.join(root, file))
+            else:
+                print file
     output = mfr.run_tests([], 'cf')
     print mfr.json_output(output)
