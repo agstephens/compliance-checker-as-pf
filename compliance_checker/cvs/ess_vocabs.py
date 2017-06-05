@@ -57,9 +57,22 @@ class ESSVocabs(object):
         self._scope_info = pyessv.load(self.authority, self.scope)
 
 
-    def _lookup(self, attr):
-        "Maps attribute name to lookup value."
-        return attr.replace("_", "-") 
+    def _lookup(self, attr, full=False):
+        """
+        Maps attribute name to lookup value.
+
+        :attr   attribute name: string
+        :full   boolean to say whether the attribute should be expressed
+                as a full path: default=False 
+                If True: <authority>:<scope>:<attribute>
+        :return: lookup value: string
+        """
+        fixed_attr = attr.replace("_", "-")
+
+        if full:
+            return "{}:{}:{}".format(self.authority, self.scope, fixed_attr)
+        else:
+            return fixed_attr
         
         
     def check_global_attribute(self, ds, attr, property="label"):
@@ -112,13 +125,7 @@ class ESSVocabs(object):
         
         # Now check
         template = delimiter.join(['{}' for item in items]) + extension
-        print template
-        
-        print pyessv.load(self.authority, self.scope, 'frequency')
-        print self._cvs['frequency']
-        print pyessv.load(self.authority, self.scope, 'frequency')==self._cvs['frequency']
-        collections = tuple([self._cvs[self._lookup(key)] for key in keys])
-        print collections
+        collections = tuple([self._lookup(key, full=True) for key in keys])
         
         parser = pyessv.create_template_parser(template, collections)
 

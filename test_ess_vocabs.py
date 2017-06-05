@@ -33,25 +33,26 @@ def test_global_attribute_unknown_value():
 
 def test_global_attribute_valid_value():
     resp = ev.check_global_attribute(ds, 'institution_id', property="label")
-    print resp
     assert(resp == 2)
     print "PASS: attribute found with valid value."
 
 
 def test_check_file_name_fails():
-
+    # Need to specify "label" form of "institution_id" for it to work
     filename = "MOHC_day.nc"
     keys = ('institution_id', 'frequency')
+
     try:
         ev.check_file_name(filename, keys=keys, extension=".nc")
     except Exception, err:
         assert (str(err) == "File name MOHC_day.nc does not follow required specification.")
+    print "PASS: file name failed as expected."
 
 
 def test_check_file_name_success():
 
-    filename = "mohc_day.nc"
-    keys = ('institution_id', 'frequency')
+    filename = "MOHC_day.nc"
+    keys = ('institution_id:label', 'frequency')
     resp = ev.check_file_name(filename, keys=keys, extension=".nc")
     assert (resp == True)
 
